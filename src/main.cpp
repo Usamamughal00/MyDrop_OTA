@@ -70,7 +70,7 @@ String userID = "usamamughal20um@gmailcom";
 
 
 // OTA parameters ---------------------------------------------------------------------------------
-String FirmwareVer = {"1.9"};
+String FirmwareVer = {"1.0"};
 #define URL_fw_Version "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/firmware_version.txt"
 #define URL_fw_Bin "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/fw/firmware.bin"
 void firmwareUpdate();
