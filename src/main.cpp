@@ -71,8 +71,8 @@ String userID = "usamamughal20um@gmailcom";
 
 // OTA parameters ---------------------------------------------------------------------------------
 String FirmwareVer = {"1.9"};
-#define URL_fw_Version "https://raw.githubusercontent.com/EgnionInnovation/abacus_wallbox_OTA/main/firmware_version.txt"
-#define URL_fw_Bin "https://raw.githubusercontent.com/EgnionInnovation/abacus_wallbox_OTA/main/fw/firmware.bin"
+#define URL_fw_Version "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/firmware_version.txt"
+#define URL_fw_Bin "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/fw/firmware.bin"
 void firmwareUpdate();
 int FirmwareVersionCheck();
 
