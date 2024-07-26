@@ -70,7 +70,7 @@ String userID = "usamamughal20um@gmailcom";
 
 
 // OTA parameters ---------------------------------------------------------------------------------
-String FirmwareVer = {"1.0"};
+String FirmwareVer = {"1.1"};
 #define URL_fw_Version "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/firmware_version.txt"
 #define URL_fw_Bin "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/fw/firmware.bin"
 void firmwareUpdate();
@@ -947,6 +947,8 @@ void initFirebase()
     {
       
       Serial.printf("Set BoxID... %s\n", Firebase.RTDB.setDouble(&fbdo, path+"/box_id" , random(1000, 9999)) ? "ok" : fbdo.errorReason().c_str());
+      delay(100);
+      Serial.printf("Set Pincode... %s\n", Firebase.RTDB.setString(&fbdo, path + "/status/Firmware_Version", FirmwareVer) ? "ok" : fbdo.errorReason().c_str());
       delay(100);
       Serial.printf("Set Pincode... %s\n", Firebase.RTDB.setString(&fbdo, path + "/status/pincode", "None") ? "ok" : fbdo.errorReason().c_str());
       delay(100);
