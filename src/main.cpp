@@ -66,11 +66,11 @@ BLEStringCharacteristic devicegetCharacteristic("216A", BLEWrite, 100);
 #define API_KEY "AIzaSyCBYQsRGkWn8mBq6veOKHSA2pHxyDRb6qc"
 #define USER_EMAIL "fareed@test.com"
 #define USER_PASSWORD "112233"
-String userID = "usamamughal20um@gmailcom";
+String userID = "lV2wKvRcqgOsmdkU87pqjsSCcPg1";
 
 
 // OTA parameters ---------------------------------------------------------------------------------
-String FirmwareVer = {"1.1"};
+String FirmwareVer = {"1.2"};
 #define URL_fw_Version "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/firmware_version.txt"
 #define URL_fw_Bin "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/fw/firmware.bin"
 void firmwareUpdate();
@@ -944,9 +944,8 @@ void initFirebase()
     configTime(0, 0, "pool.ntp.org");
     digitalWrite(GRNLed, LOW);
     if (Firebase.ready())
-    {
-      
-      Serial.printf("Set BoxID... %s\n", Firebase.RTDB.setDouble(&fbdo, path+"/box_id" , random(1000, 9999)) ? "ok" : fbdo.errorReason().c_str());
+    { 
+      Serial.printf("Set BoxID... %s\n", Firebase.RTDB.setString(&fbdo, path+"/box_id" , String(random(1000, 9999))) ? "ok" : fbdo.errorReason().c_str());
       delay(100);
       Serial.printf("Set Pincode... %s\n", Firebase.RTDB.setString(&fbdo, path + "/status/Firmware_Version", FirmwareVer) ? "ok" : fbdo.errorReason().c_str());
       delay(100);
