@@ -20,7 +20,6 @@
 #include "OTA_cert.h"
 #include <HTTPUpdate.h>
 
-
 #ifndef _BV
 #define _BV(bit) (1 << (bit))
 #endif
@@ -66,11 +65,10 @@ BLEStringCharacteristic devicegetCharacteristic("216A", BLEWrite, 100);
 #define API_KEY "AIzaSyCBYQsRGkWn8mBq6veOKHSA2pHxyDRb6qc"
 #define USER_EMAIL "fareed@test.com"
 #define USER_PASSWORD "112233"
-String userID = "lV2wKvRcqgOsmdkU87pqjsSCcPg1";
-
+String userID = "";
 
 // OTA parameters ---------------------------------------------------------------------------------
-String FirmwareVer = {"1.2"};
+String FirmwareVer = {"1.3"};
 #define URL_fw_Version "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/firmware_version.txt"
 #define URL_fw_Bin "https://raw.githubusercontent.com/Usamamughal00/MyDrop_OTA/master/fw/firmware.bin"
 void firmwareUpdate();
@@ -78,7 +76,7 @@ int FirmwareVersionCheck();
 
 unsigned long previousMillis = 0; // will store last time LED was updated
 unsigned long previousMillis_2 = 0;
-const long interval = 300000;
+const long interval = 30000;
 const long mini_interval = 60000;
 
 void repeatedCall();
@@ -118,7 +116,7 @@ Audio audio;
 const char *ntpServer = "pool.ntp.org";
 
 unsigned long sendDataPrevMillis = 0;
-String path = "/users/users_details/"  + userID;
+String path = "/users/users_details/" + userID;
 
 // status variables
 bool isStreamData;
@@ -178,13 +176,10 @@ void initFirebase();
 void setup()
 {
   Serial.begin(115200);
-  EEPROM.begin(50);
+  EEPROM.begin(150);
   preferences.begin("appStorage", false);
   countJson = preferences.getLong("JSONcounter", 0);
   preferences.end();
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, pass);
-
   if (!BLE.begin())
   {
     Serial.println("starting Bluetooth® Low Energy module failed!");
@@ -209,16 +204,22 @@ void setup()
   // start advertising
   BLE.advertise();
   Serial.println("Bluetooth® device active, waiting for connections...");
-  cred_saved = EEPROM.read(45);
+  cred_saved = EEPROM.read(48);
   Serial.print("Cred ");
   Serial.println(cred_saved);
   if (cred_saved)
   {
     readStringFromEEPROM(0, &ssid);
     readStringFromEEPROM(25, &pass);
+    readStringFromEEPROM(50, &userID);
     Serial.println(ssid);
     Serial.println(pass);
+    Serial.println(userID);
+    path = "/users/users_details/" + userID;
+    Serial.println(path);
     initWiFi();
+    if (WiFi.status() == WL_CONNECTED)
+      initFirebase();
   }
 
   pinMode(BTN, INPUT_PULLUP);
@@ -309,7 +310,6 @@ void setup()
   audio.setVolume(21); // 0...21
 
   /******************** Firebase Setup******************/
-  initFirebase();
 }
 
 void loop()
@@ -875,24 +875,29 @@ void deviceCharacteristicWritten(BLEDevice central, BLECharacteristic characteri
   int s1 = data.indexOf(';');
   ssid = data.substring(0, s1);
   pass = data.substring(s1 + 1);
+
+  int s2 = pass.indexOf(';');
+  userID = pass.substring(s2 + 1);
+  pass = pass.substring(0, s2);
   Serial.println(ssid);
   Serial.println(pass);
+  Serial.println(userID);
   writeStringToEEPROM(0, ssid);
   writeStringToEEPROM(25, pass);
+  writeStringToEEPROM(50, userID);
   cred_saved = true;
-  EEPROM.write(45, cred_saved);
+  EEPROM.write(48, cred_saved);
   EEPROM.commit();
   initWiFi();
 
-  // delay(1000);
-  for (int i = 0; i < 100; i++)
+  
+  for (int i = 0; i < 300; i++)
   {
     BLE.poll();
     delay(10);
   }
-
-  initFirebase();
-  //  ESP.restart();
+  if (WiFi.status() == WL_CONNECTED)
+    ESP.restart();
 }
 void initWiFi()
 {
@@ -930,7 +935,6 @@ void initFirebase()
     Firebase.reconnectWiFi(true);
     fbdo.setResponseSize(2048);
     Firebase.begin(&config, &auth);
-
     // Streams
     if (!Firebase.RTDB.beginStream(&stream, path + "/app_commands"))
     {
@@ -944,8 +948,9 @@ void initFirebase()
     configTime(0, 0, "pool.ntp.org");
     digitalWrite(GRNLed, LOW);
     if (Firebase.ready())
-    { 
-      Serial.printf("Set BoxID... %s\n", Firebase.RTDB.setString(&fbdo, path+"/box_id" , String(random(1000, 9999))) ? "ok" : fbdo.errorReason().c_str());
+    {
+
+      Serial.printf("Set BoxID... %s\n", Firebase.RTDB.setString(&fbdo, path + "/box_id", String(random(1000, 9999))) ? "ok" : fbdo.errorReason().c_str());
       delay(100);
       Serial.printf("Set Pincode... %s\n", Firebase.RTDB.setString(&fbdo, path + "/status/Firmware_Version", FirmwareVer) ? "ok" : fbdo.errorReason().c_str());
       delay(100);
@@ -957,131 +962,131 @@ void initFirebase()
 }
 void repeatedCall()
 {
-	static int num = 0;
-	unsigned long currentMillis = millis();
-	if ((currentMillis - previousMillis) >= interval)
-	{
-		// save the last time you blinked the LED
-		previousMillis = currentMillis;
-		if (FirmwareVersionCheck())
-		{
-			firmwareUpdate();
-		}
-	}
-	if ((currentMillis - previousMillis_2) >= mini_interval)
-	{
-		previousMillis_2 = currentMillis;
-		if (WiFi.status() == WL_CONNECTED)
-		{
-			// if(debug)
-			// Serial.println("wifi connected");
-		}
-		else
-		{
-			if (WiFi.status() != WL_CONNECTED)
-			{
-				// couldn't connect
-				if (debug)
-					Serial.println("[main] Couldn't connect to WiFi after multiple attempts");
-				delay(5000);
-				ESP.restart();
-			}
-			if (debug)
-				Serial.println("Connected");
-		}
-	}
+  static int num = 0;
+  unsigned long currentMillis = millis();
+  if ((currentMillis - previousMillis) >= interval)
+  {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+    if (FirmwareVersionCheck())
+    {
+      firmwareUpdate();
+    }
+  }
+  if ((currentMillis - previousMillis_2) >= mini_interval)
+  {
+    previousMillis_2 = currentMillis;
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      // if(debug)
+      // Serial.println("wifi connected");
+    }
+    else
+    {
+      if (WiFi.status() != WL_CONNECTED)
+      {
+        // couldn't connect
+        if (debug)
+          Serial.println("[main] Couldn't connect to WiFi after multiple attempts");
+        delay(5000);
+        ESP.restart();
+      }
+      if (debug)
+        Serial.println("Connected");
+    }
+  }
 }
 
 void firmwareUpdate(void)
 {
-	WiFiClientSecure OTA_client;
-	OTA_client.setCACert(OTAcert);
-	httpUpdate.setLedPin(2, LOW);
-	t_httpUpdate_return ret = httpUpdate.update(OTA_client, URL_fw_Bin);
+  WiFiClientSecure OTA_client;
+  OTA_client.setCACert(OTAcert);
+  httpUpdate.setLedPin(2, LOW);
+  t_httpUpdate_return ret = httpUpdate.update(OTA_client, URL_fw_Bin);
 
-	switch (ret)
-	{
-	case HTTP_UPDATE_FAILED:
-		if (debug)
-			Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
-		break;
+  switch (ret)
+  {
+  case HTTP_UPDATE_FAILED:
+    if (debug)
+      Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", httpUpdate.getLastError(), httpUpdate.getLastErrorString().c_str());
+    break;
 
-	case HTTP_UPDATE_NO_UPDATES:
-		if (debug)
-			Serial.println("HTTP_UPDATE_NO_UPDATES");
-		break;
+  case HTTP_UPDATE_NO_UPDATES:
+    if (debug)
+      Serial.println("HTTP_UPDATE_NO_UPDATES");
+    break;
 
-	case HTTP_UPDATE_OK:
-		if (debug)
-			Serial.println("HTTP_UPDATE_OK");
-		break;
-	}
+  case HTTP_UPDATE_OK:
+    if (debug)
+      Serial.println("HTTP_UPDATE_OK");
+    break;
+  }
 }
 
 int FirmwareVersionCheck(void)
 {
-	if (debug)
-		Serial.println(FirmwareVer);
-	String payload;
-	int httpCode;
-	String fwurl = "";
-	fwurl += URL_fw_Version;
-	fwurl += "?";
-	fwurl += String(rand());
-	if (debug)
-		Serial.println(fwurl);
-	WiFiClientSecure *OTA_client = new WiFiClientSecure;
+  if (debug)
+    Serial.println(FirmwareVer);
+  String payload;
+  int httpCode;
+  String fwurl = "";
+  fwurl += URL_fw_Version;
+  fwurl += "?";
+  fwurl += String(rand());
+  if (debug)
+    Serial.println(fwurl);
+  WiFiClientSecure *OTA_client = new WiFiClientSecure;
 
-	if (OTA_client)
-	{
-		OTA_client->setCACert(OTAcert);
+  if (OTA_client)
+  {
+    OTA_client->setCACert(OTAcert);
 
-		// Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is
-		HTTPClient https;
+    // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is
+    HTTPClient https;
 
-		if (https.begin(*OTA_client, fwurl))
-		{ // HTTPS
-			if (debug)
-				Serial.print("[HTTPS] GET...\n");
-			// start connection and send HTTP header
-			delay(100);
-			httpCode = https.GET();
-			delay(100);
-			if (httpCode == HTTP_CODE_OK) // if version received
-			{
-				payload = https.getString(); // save received version
-			}
-			else
-			{
-				if (debug)
-				{
-					Serial.print("error in downloading version file:");
-					Serial.println(httpCode);
-				}
-			}
-			https.end();
-		}
-		delete OTA_client;
-	}
+    if (https.begin(*OTA_client, fwurl))
+    { // HTTPS
+      if (debug)
+        Serial.print("[HTTPS] GET...\n");
+      // start connection and send HTTP header
+      delay(100);
+      httpCode = https.GET();
+      delay(100);
+      if (httpCode == HTTP_CODE_OK) // if version received
+      {
+        payload = https.getString(); // save received version
+      }
+      else
+      {
+        if (debug)
+        {
+          Serial.print("error in downloading version file:");
+          Serial.println(httpCode);
+        }
+      }
+      https.end();
+    }
+    delete OTA_client;
+  }
 
-	if (httpCode == HTTP_CODE_OK) // if version received
-	{
-		payload.trim();
-		if (payload.equals(FirmwareVer))
-		{
-			if (debug)
-				Serial.printf("\nDevice already on latest firmware version:%s\n", FirmwareVer);
-			return 0;
-		}
-		else
-		{
-			if (debug)
-			{
-				Serial.println(payload);
-				Serial.println("New firmware detected");
-			}
-			return 1;
-		}
-	}
-	return 0;
+  if (httpCode == HTTP_CODE_OK) // if version received
+  {
+    payload.trim();
+    if (payload.equals(FirmwareVer))
+    {
+      if (debug)
+        Serial.printf("\nDevice already on latest firmware version:%s\n", FirmwareVer);
+      return 0;
+    }
+    else
+    {
+      if (debug)
+      {
+        Serial.println(payload);
+        Serial.println("New firmware detected");
+      }
+      return 1;
+    }
+  }
+  return 0;
 }
