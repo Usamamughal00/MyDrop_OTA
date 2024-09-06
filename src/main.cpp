@@ -76,7 +76,7 @@ int FirmwareVersionCheck();
 
 unsigned long previousMillis = 0; // will store last time LED was updated
 unsigned long previousMillis_2 = 0;
-const long interval = 30000;
+const long interval = 300000;
 const long mini_interval = 60000;
 
 void repeatedCall();
